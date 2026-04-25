@@ -1,5 +1,7 @@
 // frisco.pl — searches via their /shop/query URL
 // Prices are JS-rendered; Playwright waits for the product grid to appear.
+const path = require('path');
+const DATA_DIR = '/app/data';
 
 async function scrape(page, query) {
   const url = `https://www.frisco.pl/shop/query,${encodeURIComponent(query)}`;
@@ -14,7 +16,9 @@ async function scrape(page, query) {
   try {
     await page.waitForSelector('[class*="product-tile"], [class*="ProductTile"], [data-testid*="product"]', { timeout: 10000 });
   } catch {
-    return null; // no results
+    await page.screenshot({ path: path.join(DATA_DIR, 'debug-frisco.png'), fullPage: true }).catch(() => {});
+    const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-frisco.html'), await page.content().catch(() => ''));
+    return null;
   }
 
   // Grab first result: name + price

@@ -1,4 +1,6 @@
 // megasam24.pl — local Warsaw player, WooCommerce-based store
+const path = require('path');
+const DATA_DIR = '/app/data';
 
 async function scrape(page, query) {
   // Megasam24 runs on WooCommerce; search endpoint is /?s=query&post_type=product
@@ -14,6 +16,8 @@ async function scrape(page, query) {
     // WooCommerce standard selectors
     await page.waitForSelector('.products .product, ul.products li.product', { timeout: 10000 });
   } catch {
+    await page.screenshot({ path: path.join(DATA_DIR, 'debug-megasam24.png'), fullPage: true }).catch(() => {});
+    const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-megasam24.html'), await page.content().catch(() => ''));
     return null;
   }
 

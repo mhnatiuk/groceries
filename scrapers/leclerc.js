@@ -1,4 +1,6 @@
 // eleclerc.pl — Warsaw store, search via /pl/search
+const path = require('path');
+const DATA_DIR = '/app/data';
 
 async function scrape(page, query) {
   const url = `https://www.eleclerc.pl/pl/search?q=${encodeURIComponent(query)}`;
@@ -12,6 +14,8 @@ async function scrape(page, query) {
   try {
     await page.waitForSelector('[class*="product"], [data-testid*="product"]', { timeout: 10000 });
   } catch {
+    await page.screenshot({ path: path.join(DATA_DIR, 'debug-leclerc.png'), fullPage: true }).catch(() => {});
+    const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-leclerc.html'), await page.content().catch(() => ''));
     return null;
   }
 

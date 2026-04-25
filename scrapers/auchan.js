@@ -1,4 +1,6 @@
 // auchan.pl — search via /szukaj?q=
+const path = require('path');
+const DATA_DIR = '/app/data';
 
 async function scrape(page, query) {
   const url = `https://www.auchan.pl/szukaj?q=${encodeURIComponent(query)}`;
@@ -12,6 +14,8 @@ async function scrape(page, query) {
   try {
     await page.waitForSelector('[class*="product-tile"], [class*="ProductTile"], [class*="product-item"]', { timeout: 10000 });
   } catch {
+    await page.screenshot({ path: path.join(DATA_DIR, 'debug-auchan.png'), fullPage: true }).catch(() => {});
+    const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-auchan.html'), await page.content().catch(() => ''));
     return null;
   }
 

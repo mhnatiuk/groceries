@@ -1,4 +1,6 @@
 // carrefour.pl — uses their /szukaj?query= search endpoint
+const path = require('path');
+const DATA_DIR = '/app/data';
 
 async function scrape(page, query) {
   const url = `https://www.carrefour.pl/szukaj?query=${encodeURIComponent(query)}`;
@@ -12,6 +14,8 @@ async function scrape(page, query) {
   try {
     await page.waitForSelector('[class*="product-card"], [class*="ProductCard"], [data-testid*="product-card"]', { timeout: 10000 });
   } catch {
+    await page.screenshot({ path: path.join(DATA_DIR, 'debug-carrefour.png'), fullPage: true }).catch(() => {});
+    const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-carrefour.html'), await page.content().catch(() => ''));
     return null;
   }
 
