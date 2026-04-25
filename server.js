@@ -47,14 +47,20 @@ async function newPage() {
 
 async function scrapeStore(storeKey, query) {
   const { page, ctx } = await newPage();
+  const t0 = Date.now();
   try {
     const raw = await scrapers[storeKey].scrape(page, query);
+    const ms = Date.now() - t0;
     if (raw && raw.price !== null) {
+      console.log(`  [${storeKey}] ✓ ${raw.price} PLN — "${raw.name}" (${ms}ms)`);
       return { price: raw.price, foundName: raw.name, status: 'found' };
     }
+    console.log(`  [${storeKey}] – not found (${ms}ms)`);
     return { price: null, foundName: null, status: 'notfound' };
   } catch (err) {
-    console.error(`[${storeKey}] "${query}": ${err.message}`);
+    const ms = Date.now() - t0;
+    const short = err.message.split('\n')[0];
+    console.error(`  [${storeKey}] ✗ ${short} (${ms}ms)`);
     try {
       await page.screenshot({ path: path.join(__dirname, `debug-${storeKey}.png`) });
     } catch {}
@@ -74,7 +80,8 @@ app.post('/api/search', async (req, res) => {
     return res.status(400).json({ error: 'Missing query' });
   }
 
-  console.log(`Scraping: "${query}"`);
+  const t0 = Date.now();
+  console.log(`\nScraping: "${query}" (all stores in parallel)`);
 
   const entries = await Promise.all(
     Object.keys(scrapers).map(key =>
@@ -83,9 +90,11 @@ app.post('/api/search', async (req, res) => {
   );
   const results = Object.fromEntries(entries);
 
-  // Persist to DB
+  const found = entries.filter(([, r]) => r.status === 'found').length;
+  const ms = Date.now() - t0;
+  console.log(`  → ${found}/${entries.length} stores found a price (${ms}ms total)`);
+
   db.saveResults(query, results);
-  console.log(`Saved results for "${query}"`);
 
   // Add a timestamp so the frontend knows when these were fetched
   const scrapedAt = new Date().toISOString();

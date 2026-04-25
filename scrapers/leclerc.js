@@ -2,7 +2,7 @@
 
 async function scrape(page, query) {
   const url = `https://www.eleclerc.pl/pl/search?q=${encodeURIComponent(query)}`;
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
   // Accept cookies
   try {

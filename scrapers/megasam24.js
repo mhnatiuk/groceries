@@ -3,7 +3,7 @@
 async function scrape(page, query) {
   // Megasam24 runs on WooCommerce; search endpoint is /?s=query&post_type=product
   const url = `https://megasam24.pl/?s=${encodeURIComponent(query)}&post_type=product`;
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
   // Accept cookies (WooCommerce sites often use simple banners)
   try {
