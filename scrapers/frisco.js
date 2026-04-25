@@ -10,7 +10,7 @@ async function scrape(page, query) {
   } catch {}
 
   try {
-    await page.waitForSelector('.mini-product-box', { timeout: 12000 });
+    await page.waitForSelector('.mini-product-box', { timeout: 25000 });
   } catch {
     await page.screenshot({ path: path.join(DATA_DIR, 'debug-frisco.png'), fullPage: true }).catch(() => {});
     const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-frisco.html'), await page.content().catch(() => ''));

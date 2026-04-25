@@ -5,12 +5,11 @@ async function scrape(page, query) {
   const url = `https://www.carrefour.pl/szukaj?query=${encodeURIComponent(query)}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  // Accept OneTrust cookie consent
+  // Accept OneTrust cookie consent — use JS click which is more reliable than Playwright click
   try {
     await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 6000 });
-    await page.click('#onetrust-accept-btn-handler');
-    // Wait for products to re-render after consent
-    await page.waitForTimeout(3000);
+    await page.evaluate(() => document.getElementById('onetrust-accept-btn-handler')?.click());
+    await page.waitForTimeout(5000);
   } catch {}
 
   // Carrefour uses Next.js — try to extract from window.__NEXT_DATA__ first

@@ -5,12 +5,12 @@ async function scrape(page, query) {
   const url = `https://www.auchan.pl/szukaj?q=${encodeURIComponent(query)}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  // Accept OneTrust cookie consent
+  // Accept OneTrust cookie consent — JS click is more reliable
   try {
     await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 6000 });
-    await page.click('#onetrust-accept-btn-handler');
-    // Auchan is Vue SPA — wait for products to load after consent
-    await page.waitForTimeout(4000);
+    await page.evaluate(() => document.getElementById('onetrust-accept-btn-handler')?.click());
+    // Auchan is Vue SPA — needs more time after consent to render products
+    await page.waitForTimeout(6000);
   } catch {}
 
   try {
