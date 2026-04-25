@@ -1,16 +1,15 @@
-# Use the official Playwright image — Chromium and all system deps are pre-installed
 FROM mcr.microsoft.com/playwright:v1.59.1-jammy
 
 WORKDIR /app
 
-# Install Node dependencies first (layer cached unless package.json changes)
+# better-sqlite3 is a native addon — needs build tools to compile from source
+RUN apt-get update && apt-get install -y build-essential python3 && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
 RUN npm install
 
-# Copy source
 COPY . .
 
-# Data directory for SQLite — will be bind-mounted from the host
 RUN mkdir -p /app/data
 
 EXPOSE 3000
