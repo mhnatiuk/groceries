@@ -5,11 +5,15 @@ async function scrape(page, query) {
   const url = `https://www.auchan.pl/szukaj?q=${encodeURIComponent(query)}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  // Accept OneTrust cookie consent — JS click is more reliable
+  // Accept OneTrust via SDK API (most reliable) or DOM click fallback
   try {
     await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 6000 });
-    await page.evaluate(() => document.getElementById('onetrust-accept-btn-handler')?.click());
-    // Auchan is Vue SPA — needs more time after consent to render products
+    await page.evaluate(() => {
+      if (window.OneTrust?.AllowAll) { window.OneTrust.AllowAll(); return; }
+      if (window.Optanon?.AllowAll) { window.Optanon.AllowAll(); return; }
+      document.getElementById('onetrust-accept-btn-handler')?.click();
+    });
+    // Auchan is Vue SPA — needs time after consent to render products
     await page.waitForTimeout(6000);
   } catch {}
 

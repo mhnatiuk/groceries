@@ -5,10 +5,14 @@ async function scrape(page, query) {
   const url = `https://www.carrefour.pl/szukaj?query=${encodeURIComponent(query)}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  // Accept OneTrust cookie consent — use JS click which is more reliable than Playwright click
+  // Accept OneTrust via SDK API (most reliable) or DOM click fallback
   try {
     await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 6000 });
-    await page.evaluate(() => document.getElementById('onetrust-accept-btn-handler')?.click());
+    await page.evaluate(() => {
+      if (window.OneTrust?.AllowAll) { window.OneTrust.AllowAll(); return; }
+      if (window.Optanon?.AllowAll) { window.Optanon.AllowAll(); return; }
+      document.getElementById('onetrust-accept-btn-handler')?.click();
+    });
     await page.waitForTimeout(5000);
   } catch {}
 
