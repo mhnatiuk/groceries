@@ -1,3 +1,4 @@
 node_modules/
 prices.db
 debug-*.png
+data/

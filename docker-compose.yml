@@ -1,0 +1,10 @@
+services:
+  groceries:
+    build: .
+    ports:
+      - "80:3000"         # access at http://localhost with no port number
+    volumes:
+      - ./data:/app/data  # SQLite DB persists here on your Mac
+    environment:
+      - DB_PATH=/app/data/prices.db
+    restart: unless-stopped

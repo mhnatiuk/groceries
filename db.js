@@ -1,7 +1,10 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const DB_PATH = path.join(__dirname, 'prices.db');
+// DB_PATH can be overridden via env var — Docker mounts ./data as /app/data
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'prices.db');
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 
 // Enable WAL mode for better concurrent read performance
