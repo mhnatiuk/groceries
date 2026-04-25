@@ -2,23 +2,17 @@ const path = require('path');
 const DATA_DIR = '/app/data';
 
 async function scrape(page, query) {
+  // Set OneTrust consent cookie so banner never appears and Vue SPA loads search results
+  await page.context().addCookies([
+    { name: 'OptanonAlertBoxClosed', value: new Date().toISOString(), domain: '.auchan.pl', path: '/' },
+    { name: 'OptanonConsent', value: 'isGpcEnabled=0&interactionCount=1&isAnonUser=1&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1', domain: '.auchan.pl', path: '/' },
+  ]);
+
   const url = `https://www.auchan.pl/szukaj?q=${encodeURIComponent(query)}`;
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-
-  // Accept OneTrust via SDK API (most reliable) or DOM click fallback
-  try {
-    await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 6000 });
-    await page.evaluate(() => {
-      if (window.OneTrust?.AllowAll) { window.OneTrust.AllowAll(); return; }
-      if (window.Optanon?.AllowAll) { window.Optanon.AllowAll(); return; }
-      document.getElementById('onetrust-accept-btn-handler')?.click();
-    });
-    // Auchan is Vue SPA — needs time after consent to render products
-    await page.waitForTimeout(6000);
-  } catch {}
+  await page.goto(url, { waitUntil: 'load', timeout: 45000 });
 
   try {
-    await page.waitForSelector('[class*="product-tile"], [class*="product-card"], [class*="ProductTile"]', { timeout: 12000 });
+    await page.waitForSelector('[class*="product-tile"], [class*="product-card"], [class*="ProductTile"]', { timeout: 15000 });
   } catch {
     await page.screenshot({ path: path.join(DATA_DIR, 'debug-auchan.png'), fullPage: true }).catch(() => {});
     const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-auchan.html'), await page.content().catch(() => ''));
