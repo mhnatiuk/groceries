@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warsaw Grocery Compare</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f6f3;
+    --bg3: #f0efe9;
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --success-bg: #eaf3de;
+    --success-text: #3b6d11;
+    --info-bg: #e6f1fb;
+    --info-text: #185fa5;
+    --warn-bg: #faeeda;
+    --warn-text: #854f0b;
+    --danger-bg: #fcebeb;
+    --danger-text: #a32d2d;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --font: -apple-system, 'Helvetica Neue', sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #252523; --bg3: #2c2c2a;
+      --text: #f0efe9; --text2: #b4b2a9; --text3: #888780;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --success-bg: #173404; --success-text: #c0dd97;
+      --info-bg: #042c53; --info-text: #b5d4f4;
+      --warn-bg: #412402; --warn-text: #fac775;
+      --danger-bg: #501313; --danger-text: #f7c1c1;
+    }
+  }
+
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; padding: 32px 16px; }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 16px; }
+
+  .add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+
+  input[type="text"] {
+    flex: 1; font-size: 13px; font-family: var(--font);
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 8px 12px; color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  input[type="text"]:focus { border-color: var(--border2); }
+
+  button {
+    font-size: 13px; font-family: var(--font); background: var(--bg);
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    padding: 8px 14px; color: var(--text); cursor: pointer;
+    white-space: nowrap; transition: background 0.1s;
+  }
+  button:hover { background: var(--bg2); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+  .btn-small { font-size: 11px; padding: 4px 8px; color: var(--text2); }
+  .btn-danger { color: var(--danger-text); border-color: transparent; background: none; }
+  .btn-danger:hover { background: var(--danger-bg); }
+
+  .table-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+
+  th {
+    font-size: 11px; font-weight: 500; color: var(--text2);
+    text-align: right; padding: 6px 8px;
+    border-bottom: 0.5px solid var(--border); white-space: nowrap;
+  }
+  th.left { text-align: left; }
+
+  td { padding: 6px 8px; border-bottom: 0.5px solid var(--border); vertical-align: middle; text-align: right; }
+  td.left { text-align: left; }
+
+  .price-cell { position: relative; }
+  .price-val { font-size: 13px; color: var(--text); }
+  .price-stale { color: var(--text2); }
+  .price-found-name { display: block; font-size: 10px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; margin-left: auto; }
+  .price-age { display: block; font-size: 10px; color: var(--text3); }
+  .price-loading { color: var(--text3); font-size: 11px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+  .price-error { color: var(--danger-text); font-size: 11px; }
+  .price-notfound { color: var(--text3); font-size: 11px; }
+
+  .price-trend { font-size: 10px; margin-left: 3px; }
+  .trend-up { color: var(--danger-text); }
+  .trend-down { color: var(--success-text); }
+
+  .spinner { width: 10px; height: 10px; border: 1.5px solid var(--border2); border-top-color: var(--text2); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+  .item-name-cell { display: flex; align-items: center; gap: 6px; }
+  .item-name-text { font-size: 13px; }
+  .item-age { font-size: 10px; color: var(--text3); }
+
+  tfoot td { font-size: 13px; font-weight: 500; }
+  .foot-label { font-size: 12px; color: var(--text2); font-weight: 400; }
+  .foot-sub td { border-top: 1px solid var(--border2); border-bottom: 0.5px solid var(--border); }
+  .foot-del td { font-size: 11px; font-weight: 400; color: var(--text2); border-bottom: 0.5px solid var(--border); }
+  .foot-total td { font-size: 16px; border-top: 0.5px solid var(--border); border-bottom: none; }
+
+  .winner { padding: 10px 16px; background: var(--success-bg); border-radius: var(--radius); font-size: 13px; color: var(--success-text); margin-top: 12px; display: none; }
+
+  .badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: var(--radius); vertical-align: middle; margin-left: 4px; }
+  .badge-best { background: var(--success-bg); color: var(--success-text); }
+
+  .fee-note { font-size: 11px; color: var(--text3); margin-top: 14px; line-height: 1.6; }
+  .empty-hint { font-size: 12px; color: var(--text3); padding: 16px 8px; text-align: center; }
+
+  /* History popover */
+  .history-btn { font-size: 10px; padding: 2px 6px; color: var(--info-text); border-color: transparent; background: none; }
+  .history-btn:hover { background: var(--info-bg); }
+
+  .popover-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .popover { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 20px 24px; width: 400px; max-height: 80vh; overflow-y: auto; }
+  .popover h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .popover .store-label { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+  .history-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .history-table th { text-align: left; font-size: 11px; color: var(--text2); padding: 4px 0; border-bottom: 0.5px solid var(--border); }
+  .history-table td { padding: 5px 0; border-bottom: 0.5px solid var(--border); }
+  .history-table td:last-child { text-align: right; }
+  .popover-close { float: right; margin-top: -2px; }
+
+  .db-indicator { font-size: 11px; color: var(--text3); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .db-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-text); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🛒 Warsaw Grocery Compare</h1>
+  <p class="subtitle">Prices scraped live from Leclerc, Megasam24, Frisco, Carrefour and Auchan — stored locally in SQLite</p>
+
+  <div class="card">
+    <div class="db-indicator">
+      <span class="db-dot"></span>
+      <span id="db-status">Loading cached prices...</span>
+    </div>
+
+    <div class="add-row">
+      <input type="text" id="item-input" placeholder="Add item (e.g. masło, jajka, łosoś...)" autocomplete="off" />
+      <button id="add-btn">+ Add &amp; scrape</button>
+      <button id="refresh-all-btn" class="btn-small" title="Re-scrape all items">↻ Refresh all</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th class="left" style="width:20%">Item</th>
+            <th style="width:13%">Leclerc</th>
+            <th style="width:13%">Megasam24</th>
+            <th style="width:13%">Frisco</th>
+            <th style="width:13%">Carrefour</th>
+            <th style="width:13%">Auchan</th>
+            <th style="width:8%"></th>
+          </tr>
+        </thead>
+        <tbody id="item-body">
+          <tr id="empty-row"><td colspan="7" class="empty-hint">No items yet — add one above</td></tr>
+        </tbody>
+        <tfoot id="table-foot" style="display:none">
+          <tr class="foot-sub">
+            <td class="left foot-label">Basket subtotal</td>
+            <td id="sub-0"></td><td id="sub-1"></td><td id="sub-2"></td><td id="sub-3"></td><td id="sub-4"></td><td></td>
+          </tr>
+          <tr class="foot-del">
+            <td class="left">+ Delivery</td>
+            <td id="del-0"></td><td id="del-1"></td><td id="del-2"></td><td id="del-3"></td><td id="del-4"></td><td></td>
+          </tr>
+          <tr class="foot-total">
+            <td class="left foot-label">Total</td>
+            <td id="tot-0"></td><td id="tot-1"></td><td id="tot-2"></td><td id="tot-3"></td><td id="tot-4"></td><td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="winner" id="winner-bar"></div>
+
+    <p class="fee-note">
+      Delivery fees: <strong>Leclerc</strong> free ≥ PLN 300 (else +19.99) ·
+      <strong>Megasam24</strong> free ≥ PLN 180 (else +9.99, min PLN 120) ·
+      <strong>Frisco</strong> free ≥ PLN 270 (+15 for 100–200, +10 for 200–270) ·
+      <strong>Carrefour</strong> free ≥ PLN 299 (else +19.99) ·
+      <strong>Auchan</strong> free ≥ PLN 200 (else +19.90, min PLN 100)
+    </p>
+  </div>
+</div>
+
+<!-- History popover -->
+<div class="popover-overlay" id="popover-overlay" style="display:none" onclick="closePopover(event)">
+  <div class="popover">
+    <button class="btn-small popover-close" onclick="closeHistory()">✕ close</button>
+    <h2 id="pop-item"></h2>
+    <p class="store-label" id="pop-store"></p>
+    <table class="history-table">
+      <thead><tr><th>Date</th><th>Found as</th><th>Price</th></tr></thead>
+      <tbody id="pop-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const STORE_KEYS   = ['leclerc', 'megasam24', 'frisco', 'carrefour', 'auchan'];
+const STORE_LABELS = ['Leclerc', 'Megasam24', 'Frisco', 'Carrefour', 'Auchan'];
+
+const deliveryFee = [
+  t => t >= 300 ? 0 : 19.99,
+  t => t < 120 ? null : t >= 180 ? 0 : 9.99,
+  t => t < 100 ? null : t < 200 ? 15 : t < 270 ? 10 : 0,
+  t => t >= 299 ? 0 : 19.99,
+  t => t < 100 ? null : t >= 200 ? 0 : 19.90,
+];
+
+// items[]: { id, name, results: { store: { price, foundName, status, scrapedAt } } }
+let items = [];
+let nextId = 0;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(p) { return `PLN ${p.toFixed(2)}`; }
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60)  return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function oldestScrapeAt(item) {
+  const times = STORE_KEYS.map(k => item.results[k]?.scrapedAt).filter(Boolean);
+  if (!times.length) return null;
+  return times.sort()[0];
+}
+
+// ─── State mutations ──────────────────────────────────────────────────────────
+
+function setLoading(item) {
+  STORE_KEYS.forEach(k => { item.results[k] = { price: null, foundName: null, status: 'loading', scrapedAt: null }; });
+}
+
+function applyApiResponse(item, data) {
+  STORE_KEYS.forEach(k => {
+    const r = data[k];
+    if (r) {
+      item.results[k] = {
+        price:      r.price ?? null,
+        foundName:  r.foundName ?? r.found_name ?? null,
+        status:     r.status,
+        scrapedAt:  r.scrapedAt ?? r.scraped_at ?? null,
+      };
+    }
+  });
+}
+
+// ─── API calls ────────────────────────────────────────────────────────────────
+
+async function scrapeItem(item) {
+  setLoading(item);
+  renderTable();
+  try {
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: item.name }),
+    });
+    const data = await res.json();
+    applyApiResponse(item, data);
+  } catch {
+    STORE_KEYS.forEach(k => { item.results[k] = { price: null, foundName: null, status: 'error', scrapedAt: null }; });
+  }
+  renderTable();
+}
+
+async function loadCached(item) {
+  try {
+    const res = await fetch(`/api/cached?item=${encodeURIComponent(item.name)}`);
+    const data = await res.json();
+    if (Object.keys(data).length > 0) {
+      applyApiResponse(item, data);
+      return true; // had cache
+    }
+  } catch {}
+  return false;
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+
+function renderPriceCell(itemId, storeKey, r, prevPrice) {
+  if (!r || r.status === 'loading') {
+    return `<div class="price-loading"><div class="spinner"></div> searching</div>`;
+  }
+  if (r.status === 'error')    return `<span class="price-error">error</span>`;
+  if (!r.price)                return `<span class="price-notfound">—</span>`;
+
+  let trend = '';
+  if (prevPrice !== null && prevPrice !== undefined && Math.abs(r.price - prevPrice) > 0.005) {
+    trend = r.price > prevPrice
+      ? `<span class="price-trend trend-up" title="was PLN ${prevPrice.toFixed(2)}">↑</span>`
+      : `<span class="price-trend trend-down" title="was PLN ${prevPrice.toFixed(2)}">↓</span>`;
+  }
+
+  const nameHtml   = r.foundName ? `<span class="found-name price-found-name" title="${r.foundName}">${r.foundName}</span>` : '';
+  const ageHtml    = r.scrapedAt ? `<span class="price-age">${timeAgo(r.scrapedAt)}</span>` : '';
+  const histBtn    = `<button class="history-btn" onclick="showHistory(${itemId},'${storeKey}')">history</button>`;
+
+  return `<span class="price-val">${fmt(r.price)}${trend}</span>${nameHtml}${ageHtml}${histBtn}`;
+}
+
+// Keep previous prices to show trends
+const prevPrices = {}; // key: `${itemId}-${storeKey}`
+
+function renderTable() {
+  const tbody = document.getElementById('item-body');
+  const tfoot = document.getElementById('table-foot');
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr id="empty-row"><td colspan="7" class="empty-hint">No items yet — add one above</td></tr>';
+    tfoot.style.display = 'none';
+    document.getElementById('winner-bar').style.display = 'none';
+    updateDbStatus();
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => {
+    const age = oldestScrapeAt(item);
+    return `<tr>
+      <td class="left">
+        <div class="item-name-cell">
+          <span class="item-name-text">${item.name}</span>
+          ${age ? `<span class="item-age">${timeAgo(age)}</span>` : ''}
+        </div>
+      </td>
+      ${STORE_KEYS.map((k, si) => {
+        const prev = prevPrices[`${item.id}-${k}`];
+        return `<td class="price-cell">${renderPriceCell(item.id, k, item.results[k], prev)}</td>`;
+      }).join('')}
+      <td>
+        <div class="row-actions">
+          <button class="btn-small" onclick="refreshItem(${item.id})" title="Re-scrape this item">↻</button>
+          <button class="btn-small btn-danger" onclick="removeItem(${item.id})">×</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tfoot.style.display = '';
+  renderTotals();
+  updateDbStatus();
+}
+
+function renderTotals() {
+  const subs   = Array(5).fill(0);
+  const hasAny = Array(5).fill(false);
+
+  items.forEach(item => {
+    STORE_KEYS.forEach((k, si) => {
+      const r = item.results[k];
+      if (r?.status === 'found' && r.price) { subs[si] += r.price; hasAny[si] = true; }
+    });
+  });
+
+  const finals = subs.map((sub, si) => {
+    if (!hasAny[si]) return null;
+    const fee = deliveryFee[si](sub);
+    return fee === null ? null : sub + fee;
+  });
+
+  const valid   = finals.filter(f => f !== null);
+  const minFinal = valid.length > 0 ? Math.min(...valid) : null;
+
+  STORE_KEYS.forEach((_, si) => {
+    const sub   = subs[si];
+    const fee   = hasAny[si] ? deliveryFee[si](sub) : null;
+    const final = fee === null ? null : sub + fee;
+    const isBest = final !== null && final === minFinal && valid.length > 1;
+
+    document.getElementById(`sub-${si}`).textContent = hasAny[si] ? fmt(sub) : '—';
+    document.getElementById(`del-${si}`).textContent =
+      fee !== null ? (fee === 0 ? 'free' : `+${fmt(fee)}`) : hasAny[si] ? 'below min' : '—';
+
+    const totEl = document.getElementById(`tot-${si}`);
+    totEl.textContent   = final !== null ? fmt(final) : '—';
+    totEl.style.color   = isBest ? 'var(--success-text)' : '';
+
+    const th = document.querySelectorAll('thead th')[si + 1];
+    const existing = th.querySelector('.badge');
+    if (existing) existing.remove();
+    if (isBest) {
+      const b = document.createElement('span');
+      b.className = 'badge badge-best';
+      b.textContent = 'cheapest';
+      th.appendChild(b);
+    }
+  });
+
+  const bar = document.getElementById('winner-bar');
+  if (minFinal !== null && valid.length > 1) {
+    const wi = finals.indexOf(minFinal);
+    const saving = Math.max(...valid) - minFinal;
+    bar.style.display = '';
+    bar.textContent = `${STORE_LABELS[wi]} is cheapest at ${fmt(minFinal)}` +
+      (saving > 0.01 ? ` — saves you ${fmt(saving)} vs the most expensive option` : '');
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function updateDbStatus() {
+  const total = items.length;
+  const scraped = items.filter(i => STORE_KEYS.some(k => i.results[k]?.status === 'found')).length;
+  document.getElementById('db-status').textContent =
+    total === 0 ? 'Database ready — prices will be stored locally in prices.db'
+    : `${scraped} of ${total} items have cached prices in prices.db`;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+
+function addItem(name, loadCachedFirst = true) {
+  const id = nextId++;
+  const results = {};
+  STORE_KEYS.forEach(k => { results[k] = { price: null, foundName: null, status: 'loading', scrapedAt: null }; });
+  const item = { id, name, results };
+  items.push(item);
+  renderTable();
+
+  if (loadCachedFirst) {
+    loadCached(item).then(hadCache => {
+      renderTable();
+      if (!hadCache) scrapeItem(item);
+    });
+  } else {
+    scrapeItem(item);
+  }
+  return item;
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderTable();
+}
+
+function refreshItem(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  // Save previous prices for trend arrows
+  STORE_KEYS.forEach(k => {
+    if (item.results[k]?.status === 'found') {
+      prevPrices[`${id}-${k}`] = item.results[k].price;
+    }
+  });
+  scrapeItem(item);
+}
+
+function refreshAll() {
+  items.forEach(item => refreshItem(item.id));
+}
+
+// ─── History popover ──────────────────────────────────────────────────────────
+
+async function showHistory(itemId, storeKey) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  document.getElementById('pop-item').textContent  = item.name;
+  document.getElementById('pop-store').textContent = `Store: ${STORE_LABELS[STORE_KEYS.indexOf(storeKey)]}`;
+  document.getElementById('pop-rows').innerHTML    = '<tr><td colspan="3" style="color:var(--text3);padding:8px 0">Loading...</td></tr>';
+  document.getElementById('popover-overlay').style.display = 'flex';
+
+  try {
+    const res  = await fetch(`/api/history?item=${encodeURIComponent(item.name)}&store=${storeKey}`);
+    const rows = await res.json();
+    if (!rows.length) {
+      document.getElementById('pop-rows').innerHTML = '<tr><td colspan="3" style="color:var(--text3);padding:8px 0">No history yet</td></tr>';
+      return;
+    }
+    document.getElementById('pop-rows').innerHTML = rows.map((r, i) => {
+      const prev = rows[i + 1];
+      let trend = '';
+      if (prev?.price && r.price) {
+        if (r.price > prev.price) trend = ' <span style="color:var(--danger-text)">↑</span>';
+        else if (r.price < prev.price) trend = ' <span style="color:var(--success-text)">↓</span>';
+      }
+      const date = new Date(r.scraped_at).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+      const name = r.found_name ? `<span style="color:var(--text3)">${r.found_name}</span>` : '—';
+      const price = r.price ? `${fmt(r.price)}${trend}` : `<span style="color:var(--text3)">${r.status}</span>`;
+      return `<tr><td>${date}</td><td>${name}</td><td>${price}</td></tr>`;
+    }).join('');
+  } catch {
+    document.getElementById('pop-rows').innerHTML = '<tr><td colspan="3" style="color:var(--danger-text)">Error loading history</td></tr>';
+  }
+}
+
+function closeHistory() {
+  document.getElementById('popover-overlay').style.display = 'none';
+}
+
+function closePopover(e) {
+  if (e.target === document.getElementById('popover-overlay')) closeHistory();
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  const val = document.getElementById('item-input').value.trim();
+  if (!val) return;
+  addItem(val);
+  document.getElementById('item-input').value = '';
+  document.getElementById('item-input').focus();
+});
+
+document.getElementById('item-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('add-btn').click();
+});
+
+document.getElementById('refresh-all-btn').addEventListener('click', refreshAll);
+
+// On load: fetch all previously searched items from DB, show cached prices,
+// then do NOT auto-scrape — user can hit ↻ to refresh when ready
+const SEED = ['jajka', 'masło', 'awokado', 'hummus', 'mozzarella', 'łosoś 0.5 kg', 'włoskie pomidory w puszce'];
+
+(async () => {
+  // Load items that were searched before
+  let dbItems = [];
+  try {
+    const res = await fetch('/api/items');
+    dbItems = await res.json();
+  } catch {}
+
+  // Merge: seed + anything from DB not already in seed
+  const allNames = [...new Set([...SEED, ...dbItems])];
+
+  for (const name of allNames) {
+    const id = nextId++;
+    const results = {};
+    STORE_KEYS.forEach(k => { results[k] = { price: null, foundName: null, status: 'loading', scrapedAt: null }; });
+    const item = { id, name, results };
+    items.push(item);
+  }
+  renderTable();
+
+  // Load cached prices for all items in parallel
+  await Promise.all(items.map(item =>
+    loadCached(item).then(hadCache => {
+      if (!hadCache) {
+        // Mark as "not yet scraped" instead of loading spinner
+        STORE_KEYS.forEach(k => { item.results[k] = { price: null, foundName: null, status: 'notfound', scrapedAt: null }; });
+      }
+    })
+  ));
+  renderTable();
+  document.getElementById('db-status').textContent =
+    `Cached prices loaded from prices.db — click ↻ on any row to refresh, or ↻ Refresh all`;
+})();
+</script>
+</body>
+</html>
