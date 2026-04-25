@@ -1,5 +1,3 @@
-// frisco.pl — searches via their /shop/query URL
-// Prices are JS-rendered; Playwright waits for the product grid to appear.
 const path = require('path');
 const DATA_DIR = '/app/data';
 
@@ -7,40 +5,32 @@ async function scrape(page, query) {
   const url = `https://www.frisco.pl/shop/query,${encodeURIComponent(query)}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  // Accept cookies if banner appears
   try {
-    await page.click('[id*="accept"], [class*="accept-cookies"], button:has-text("Akceptuję")', { timeout: 3000 });
+    await page.click('#onetrust-accept-btn-handler', { timeout: 4000 });
   } catch {}
 
-  // Wait for product tiles
   try {
-    await page.waitForSelector('[class*="product-tile"], [class*="ProductTile"], [data-testid*="product"]', { timeout: 10000 });
+    await page.waitForSelector('.mini-product-box', { timeout: 12000 });
   } catch {
     await page.screenshot({ path: path.join(DATA_DIR, 'debug-frisco.png'), fullPage: true }).catch(() => {});
     const fs = require('fs'); fs.writeFileSync(path.join(DATA_DIR, 'debug-frisco.html'), await page.content().catch(() => ''));
     return null;
   }
 
-  // Grab first result: name + price
-  const result = await page.evaluate(() => {
-    // Frisco renders prices as e.g. "12,99 zł" inside .price or [class*="price"]
-    const tile = document.querySelector('[class*="product-tile"], [class*="ProductTile"]');
-    if (!tile) return null;
+  return page.evaluate(() => {
+    const box = document.querySelector('.mini-product-box');
+    if (!box) return null;
 
-    const nameEl = tile.querySelector('[class*="product-name"], [class*="ProductName"], h3, h2');
-    const priceEl = tile.querySelector('[class*="price"]:not([class*="old"]):not([class*="before"])');
+    const nameEl = box.querySelector('.f-hpc__product-name');
+    const priceEl = box.querySelector('.f-hpc__price-amount--plain');
 
     const name = nameEl?.innerText?.trim() ?? null;
     const rawPrice = priceEl?.innerText?.trim() ?? null;
-
     if (!rawPrice) return null;
 
-    // Parse "12,99 zł" → 12.99
-    const price = parseFloat(rawPrice.replace(/[^\d,]/g, '').replace(',', '.'));
+    const price = parseFloat(rawPrice.replace(',', '.'));
     return { name, price: isNaN(price) ? null : price };
   });
-
-  return result;
 }
 
 module.exports = { scrape };

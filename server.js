@@ -62,7 +62,9 @@ async function scrapeStore(storeKey, query) {
     const short = err.message.split('\n')[0];
     console.error(`  [${storeKey}] ✗ ${short} (${ms}ms)`);
     try {
-      await page.screenshot({ path: path.join(__dirname, `debug-${storeKey}.png`) });
+      await page.screenshot({ path: path.join(__dirname, 'data', `debug-${storeKey}.png`), fullPage: true });
+      const fs = require('fs');
+      fs.writeFileSync(path.join(__dirname, 'data', `debug-${storeKey}.html`), await page.content());
     } catch {}
     return { price: null, foundName: null, status: 'error' };
   } finally {
